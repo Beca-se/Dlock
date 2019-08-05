@@ -15,32 +15,35 @@
  */
 package com.baidu.fsg.dlock.domain;
 
-import com.baidu.fsg.dlock.utils.ValuedEnum;
-
 /**
  * Lock status
  *
  * @author chenguoqing
  */
-public enum DLockStatus implements ValuedEnum<Integer> {
 
+/**
+ * 锁的状态
+ */
+public enum DLockStatus  {
+    /**
+     * 锁没有被锁住
+     */
     INITIAL(0),
+    /**
+     * 锁已被锁住
+     */
     PROCESSING(1);
 
     /**
-     * Lock status
+     * 锁的状态
      */
     private final int status;
 
     /**
-     * Constructor with field of status
+     * 构造函数
      */
     DLockStatus(int status) {
         this.status = status;
     }
 
-    @Override
-    public Integer value() {
-        return status;
-    }
 }

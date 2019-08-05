@@ -17,69 +17,48 @@ package com.baidu.fsg.dlock.domain;
 
 import java.io.Serializable;
 
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
 
 /**
  * DLockEntity represents an distributed lock entity, consists of  lock status, locker, lockTime.
- * 
+ *
  * @author chenguoqing
  * @author yutianbao
  */
-public class DLockEntity implements Serializable, Cloneable {
+
+/**
+ * redis的实体对象
+ */
+@Getter
+@Setter
+@ToString
+public class DLockEntity implements Serializable {
     private static final long serialVersionUID = 8479390959137749786L;
 
     /**
-     * Task status default as {@link DLockStatus#INITIAL}
+     * 锁的状态,默认为没锁住 {@link DLockStatus#INITIAL}
      */
     private DLockStatus lockStatus = DLockStatus.INITIAL;
 
     /**
-     * The server ip address that locked the task
+     * redis 的value
      */
     private String locker;
 
     /**
-     * Lock time for milliseconds
+     * 开始加锁的时间
      */
     private Long lockTime = -1L;
 
     /**
-     * Constructor
+     * 默认构造函数
      */
     public DLockEntity() {
-    }
-
-    /**
-     * Getters & Setters
-     */
-    public DLockStatus getLockStatus() {
-        return lockStatus;
-    }
-
-    public void setLockStatus(DLockStatus lockStatus) {
-        this.lockStatus = lockStatus;
-    }
-
-    public String getLocker() {
-        return locker;
-    }
-
-    public void setLocker(String locker) {
-        this.locker = locker;
-    }
-
-    public Long getLockTime() {
-        return lockTime;
-    }
-
-    public void setLockTime(Long lockTime) {
-        this.lockTime = lockTime;
-    }
-    
-    @Override
-    public String toString() {
-        return ToStringBuilder.reflectionToString(this, ToStringStyle.DEFAULT_STYLE);
     }
 
 }

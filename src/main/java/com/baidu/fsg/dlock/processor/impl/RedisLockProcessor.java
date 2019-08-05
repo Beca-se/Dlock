@@ -15,14 +15,6 @@
  */
 package com.baidu.fsg.dlock.processor.impl;
 
-import java.util.Arrays;
-
-import javax.annotation.Resource;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-
 import com.baidu.fsg.dlock.domain.DLockConfig;
 import com.baidu.fsg.dlock.domain.DLockEntity;
 import com.baidu.fsg.dlock.domain.DLockStatus;
@@ -30,17 +22,21 @@ import com.baidu.fsg.dlock.exception.OptimisticLockingException;
 import com.baidu.fsg.dlock.exception.RedisProcessException;
 import com.baidu.fsg.dlock.jedis.JedisClient;
 import com.baidu.fsg.dlock.processor.DLockProcessor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.annotation.Resource;
+import java.util.Arrays;
 
 /**
  * The implement of {@link DLockProcessor}. Command set(with NX & PX) & Lua script is used for atomic operations.
  * Redis version must be greater than 2.6.12<p>
- *
+ * <p>
  * DataModel:<br>
  * Key: LockUniqueKey, Value: Locker(IP + ThreadID), Expire: lease duration(ms).
  *
  * @author yutianbao
  */
-@Service
 public class RedisLockProcessor implements DLockProcessor {
     private static final Logger LOGGER = LoggerFactory.getLogger(RedisLockProcessor.class);
 
@@ -51,15 +47,12 @@ public class RedisLockProcessor implements DLockProcessor {
     private static final String SET_ARG_EXPIRE = "PX";
     private static final String RES_OK = "OK";
 
-    @Resource
-    private JedisClient jedisClient;
+    private final JedisClient jedisClient;
 
-    /**
-     * Load by unique key. For redis implement, you can find locker & status from the result entity.
-     *
-     * @param uniqueKey key
-     * @throws RedisProcessException if catch any exception from {@link redis.clients.jedis.Jedis}
-     */
+    public RedisLockProcessor(JedisClient jedisClient) {
+        this.jedisClient = jedisClient;
+    }
+
     @Override
     public DLockEntity load(String uniqueKey) throws RedisProcessException {
         // GET command
@@ -70,30 +63,20 @@ public class RedisLockProcessor implements DLockProcessor {
             LOGGER.warn("Exception occurred by GET command for key:" + uniqueKey, e);
             throw new RedisProcessException("Exception occurred by GET command for key:" + uniqueKey, e);
         }
-
-        if (locker == null) {
-            return null;
-        }
-
         // build entity
         DLockEntity lockEntity = new DLockEntity();
         lockEntity.setLocker(locker);
         lockEntity.setLockStatus(DLockStatus.PROCESSING);
 
+        if (locker == null) {
+            lockEntity.setLockStatus(DLockStatus.INITIAL);
+        }
         return lockEntity;
     }
 
-    /**
-     * Update for lock using redis SET(NX, PX) command.
-     *
-     * @param newLock with locker in it
-     * @param lockConfig
-     * @throws RedisProcessException Redis command execute exception
-     * @throws OptimisticLockingException the lock is hold by the other request.
-     */
     @Override
-    public void updateForLock(DLockEntity newLock, DLockConfig lockConfig)
-            throws RedisProcessException, OptimisticLockingException {
+    public boolean updateForLock(DLockEntity newLock, DLockConfig lockConfig)
+            throws RedisProcessException {
         // SET(NX, PX) command
         String lockRes;
         try {
@@ -106,11 +89,7 @@ public class RedisLockProcessor implements DLockProcessor {
                     "Exception occurred by SET(NX, PX) command for key:" + lockConfig.getLockUniqueKey(), e);
         }
 
-        if (!RES_OK.equals(lockRes)) {
-            LOGGER.warn("Fail to get lock for key:{} ,locker={}", lockConfig.getLockUniqueKey(), newLock.getLocker());
-            throw new OptimisticLockingException(
-                    "Fail to get lock for key:" + lockConfig.getLockUniqueKey() + " ,locker=" + newLock.getLocker());
-        }
+        return RES_OK.equals(lockRes);
     }
 
     /**
@@ -122,23 +101,15 @@ public class RedisLockProcessor implements DLockProcessor {
         throw new UnsupportedOperationException("updateForLockWithExpire is not supported");
     }
 
-    /**
-     * Extend lease for lock with lua script.
-     *
-     * @param leaseLock with locker in it
-     * @param lockConfig
-     * @throws RedisProcessException      if catch any exception from {@link redis.clients.jedis.Jedis}
-     * @throws OptimisticLockingException if the lock is released or be hold by another one.
-     */
     @Override
     public void expandLockExpire(DLockEntity leaseLock, DLockConfig lockConfig)
             throws RedisProcessException, OptimisticLockingException {
         // Expire if key is existed and equal with the specified value(locker).
         String leaseScript = "if (redis.call('get', KEYS[1]) == ARGV[1]) then "
-                           + "    return redis.call('pexpire', KEYS[1], ARGV[2]); "
-                           + "else"
-                           + "    return nil; "
-                           + "end; ";
+                + "    return redis.call('pexpire', KEYS[1], ARGV[2]); "
+                + "else"
+                + "    return nil; "
+                + "end; ";
 
         Object leaseRes;
         try {
@@ -171,10 +142,10 @@ public class RedisLockProcessor implements DLockProcessor {
             throws RedisProcessException, OptimisticLockingException {
         // Delete if key is existed and equal with the specified value(locker).
         String unlockScript = "if (redis.call('get', KEYS[1]) == ARGV[1]) then "
-                            + "    return redis.call('del', KEYS[1]); "
-                            + "else "
-                            + "    return nil; "
-                            + "end;";
+                + "    return redis.call('del', KEYS[1]); "
+                + "else "
+                + "    return nil; "
+                + "end;";
 
         Object unlockRes;
         try {
@@ -197,7 +168,7 @@ public class RedisLockProcessor implements DLockProcessor {
     @Override
     public boolean isLockFree(String uniqueKey) {
         DLockEntity locked = this.load(uniqueKey);
-        return locked == null;
+        return locked.getLockStatus() == DLockStatus.INITIAL;
     }
 
 }

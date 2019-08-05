@@ -17,8 +17,12 @@ package com.baidu.fsg.dlock.exception;
 
 /**
  * RedisProcessException
- * 
+ *
  * @author yutianbao
+ */
+
+/**
+ * 当操作redis发生错误时,会抛出此异常
  */
 public class RedisProcessException extends DLockProcessException {
 
@@ -28,35 +32,32 @@ public class RedisProcessException extends DLockProcessException {
     private static final long serialVersionUID = -4147467240172878091L;
 
     /**
-     * Default constructor
+     * 默认构造函数
      */
     public RedisProcessException() {
         super();
     }
 
+
     /**
-     * Constructor with message & cause
-     * @param message
-     * @param cause
+     * 构造函数包含错误信息,和错误原因
+     *
+     * @param message 错误信息
+     * @param cause   错误栈信息
      */
+
     public RedisProcessException(String message, Throwable cause) {
         super(message, cause);
     }
 
     /**
-     * Constructor with message
-     * @param message
+     * 构造函数包含错误信息
+     *
+     * @param message 错误信息
      */
     public RedisProcessException(String message) {
-        super(message);
+        this(message, null);
     }
 
-    /**
-     * Constructor with cause
-     * @param cause
-     */
-    public RedisProcessException(Throwable cause) {
-        super(cause);
-    }
 
 }

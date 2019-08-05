@@ -15,31 +15,30 @@
  */
 package com.baidu.fsg.dlock.jedis;
 
-import java.util.List;
-
-import javax.annotation.Resource;
-
-import org.springframework.stereotype.Service;
-
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
+import java.util.List;
+
 /**
- * Jedis client
+ * 操作redis的直接类
  *
  * @author yutianbao
  */
-@Service
+
 public class JedisClient {
 
-    @Resource
-    private JedisPool jedisPool;
+    private final JedisPool jedisPool;
+
+    public JedisClient(JedisPool jedisPool) {
+        this.jedisPool = jedisPool;
+    }
 
     /**
-     * String get command
+     * 获取value透过key
      *
-     * @param key
-     * @return
+     * @param key redis key
+     * @return 返回获取到的value, 如果没有获取到, 返回值为null
      */
     public String get(String key) {
         Jedis jedis = null;
@@ -55,14 +54,14 @@ public class JedisClient {
     }
 
     /**
-     * String set command
+     * 使用redis做分布式锁的核心方法 set(final String key, final String value,NX, PX,final long time)
      *
-     * @param key
-     * @param value
-     * @param nxxx
-     * @param expx
-     * @param time
-     * @return
+     * @param key   redis key
+     * @param value redis value
+     * @param nxxx  NX | XX 可选,在这里全部使用NX,NX: 即只有这个key不存在的时候才会设置, XX ：只在键已经存在时，才对键进行设置操作。
+     * @param expx  PX | EX 可选,这里使用PX,EX ：设置键的过期时间为秒, PX：设置键的过期时间为毫秒
+     * @param time  过期时间,单位为毫秒
+     * @return 是否设置成功, 如果不成功返回null, 成功返回OK
      */
     public String set(String key, String value, String nxxx, String expx, long time) {
         Jedis jedis = null;
@@ -78,12 +77,12 @@ public class JedisClient {
     }
 
     /**
-     * Eval lua script command
+     * 通过lua脚本删除key
      *
-     * @param script
-     * @param keys
-     * @param args
-     * @return
+     * @param script lua 脚本
+     * @param keys   所有的key 参数
+     * @param args   所有的参数
+     * @return 执行结果
      */
     public Object eval(String script, List<String> keys, List<String> args) {
         Jedis jedis = null;
@@ -98,23 +97,5 @@ public class JedisClient {
         }
     }
 
-    /**
-     * String delete command
-     *
-     * @param key
-     * @return
-     */
-    public Long del(String key) {
-        Jedis jedis = null;
-        try {
-            jedis = jedisPool.getResource();
-            return jedis.del(key);
-
-        } finally {
-            if (jedis != null) {
-                jedis.close();
-            }
-        }
-    }
 
 }
